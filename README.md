@@ -79,3 +79,11 @@ Planos gratuitos e limites mudam; confirme os limites atuais de hospedagem e ban
 4. Geração e armazenamento privado do contrato final.
 5. Edge Function + agendamento diário para lembretes; Web Push.
 6. Testes de conflito de datas, cancelamento, fuso horário e backup/exportação.
+
+## Autenticação e ambiente (versão atualizada)
+
+- Configure no Netlify `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (chave publicável/anon, nunca `service_role`/secret).
+- Após cadastrar ou alterar essas variáveis, execute um novo deploy para que o Vite as incorpore ao build.
+- O aplicativo exige login por e-mail e senha do Supabase Auth; não há cadastro público na interface.
+- A conta deve ser criada previamente no painel Supabase. Confirme que as policies RLS limitam o acesso ao usuário autorizado antes de usar dados pessoais reais.
+- O contrato PDF continua sendo um modelo preliminar e deve ser revisado juridicamente antes do uso.
