@@ -14,12 +14,22 @@ type Tab = "orders" | "availability" | "payments" | "fittings";
 type OrderForm = {
   customer_name: string;
   customer_cpf: string;
+  customer_phone: string;
+  customer_address: string;
+  customer_neighborhood: string;
   dress_description: string;
   dress_code: string;
   rental_confirmed_at: string;
   event_date: string;
   attendant: string;
   total_amount: string;
+  entry_amount: string;
+  pickup_at: string;
+  return_date: string;
+  late_fee_percent: string;
+  daily_late_fee: string;
+  laundry_cost: string;
+  image_authorized: boolean;
 };
 
 const today = () => {
@@ -30,12 +40,22 @@ const today = () => {
 const emptyForm = (): OrderForm => ({
   customer_name: "",
   customer_cpf: "",
+  customer_phone: "",
+  customer_address: "",
+  customer_neighborhood: "",
   dress_description: "",
   dress_code: "",
   rental_confirmed_at: today(),
   event_date: "",
   attendant: "",
   total_amount: "",
+  entry_amount: "0",
+  pickup_at: "",
+  return_date: "",
+  late_fee_percent: "2",
+  daily_late_fee: "0",
+  laundry_cost: "250",
+  image_authorized: false,
 });
 
 const tabLabels: Record<Tab, string> = {
@@ -169,12 +189,22 @@ export default function App() {
     setForm({
       customer_name: order.customer_name,
       customer_cpf: order.customer_cpf,
+      customer_phone: order.customer_phone ?? "",
+      customer_address: order.customer_address ?? "",
+      customer_neighborhood: order.customer_neighborhood ?? "",
       dress_description: order.dress_description,
       dress_code: order.dress_code,
       rental_confirmed_at: order.rental_confirmed_at,
       event_date: order.event_date,
       attendant: order.attendant,
       total_amount: String(order.total_amount),
+      entry_amount: String(order.entry_amount ?? 0),
+      pickup_at: order.pickup_at ? order.pickup_at.slice(0, 16) : "",
+      return_date: order.return_date ?? "",
+      late_fee_percent: String(order.late_fee_percent ?? 2),
+      daily_late_fee: String(order.daily_late_fee ?? 0),
+      laundry_cost: String(order.laundry_cost ?? 250),
+      image_authorized: order.image_authorized ?? false,
     });
     setEditingId(order.id);
     setShowForm(true);
@@ -199,15 +229,42 @@ export default function App() {
       return;
     }
 
+    const entryAmount = Number(form.entry_amount || 0);
+    const lateFeePercent = Number(form.late_fee_percent || 0);
+    const dailyLateFee = Number(form.daily_late_fee || 0);
+    const laundryCost = Number(form.laundry_cost || 0);
+    if (![entryAmount, lateFeePercent, dailyLateFee, laundryCost].every(Number.isFinite) ||
+        entryAmount < 0 || entryAmount > amount || lateFeePercent < 0 || dailyLateFee < 0 || laundryCost < 0) {
+      setMessage("Confira a entrada (não pode superar o total), a multa e os custos informados.");
+      return;
+    }
+    if (form.return_date && form.return_date < form.event_date) {
+      setMessage("A data de devolução não pode ser anterior à data do evento.");
+      return;
+    }
+
     const values = {
       customer_name: form.customer_name.trim(),
       customer_cpf: form.customer_cpf.trim(),
+      customer_phone: form.customer_phone.trim() || null,
+      customer_address: form.customer_address.trim() || null,
+      customer_neighborhood: form.customer_neighborhood.trim() || null,
       dress_description: form.dress_description.trim(),
       dress_code: form.dress_code.trim(),
       rental_confirmed_at: form.rental_confirmed_at,
       event_date: form.event_date,
       attendant: form.attendant.trim(),
       total_amount: amount,
+      pickup_at: form.pickup_at ? new Date(form.pickup_at).toISOString() : null,
+      return_date: form.return_date || null,
+      late_fee_percent: lateFeePercent,
+      daily_late_fee: dailyLateFee,
+      laundry_cost: laundryCost,
+      damage_indemnity: Number((amount * 3).toFixed(2)),
+      image_authorized: form.image_authorized,
+      contract_date: editingId
+        ? (orders.find((order) => order.id === editingId)?.contract_date ?? today())
+        : today(),
     };
 
     setLoading(true);
@@ -229,12 +286,13 @@ export default function App() {
         current.map((item) => item.id === editingId ? data as RentalOrder : item)
           .sort((a, b) => a.event_date.localeCompare(b.event_date)),
       );
-      setMessage("Pedido atualizado com sucesso.");
+      setMessage("Pedido atualizado com sucesso. A entrada inicial não foi lançada novamente.");
     } else {
       const { data, error } = await supabase
         .from("rental_orders")
         .insert({
           ...values,
+          entry_amount: entryAmount,
           status: "confirmado",
           fitting_status: "pendente",
         })
@@ -248,8 +306,35 @@ export default function App() {
       }
 
       const saved = data as RentalOrder;
+      if (entryAmount > 0) {
+        const { data: paymentData, error: paymentError } = await supabase
+          .from("payments")
+          .insert({
+            order_id: saved.id,
+            amount: entryAmount,
+            paid_at: saved.rental_confirmed_at || today(),
+            method: "não informado",
+            notes: "Entrada inicial registrada no cadastro do pedido.",
+          })
+          .select()
+          .single();
+
+        if (paymentError) {
+          setOrders((current) => [...current, saved].sort((a, b) => a.event_date.localeCompare(b.event_date)));
+          setMessage(`Pedido criado, mas a entrada de ${currency(entryAmount)} não foi registrada nos pagamentos. Registre-a manualmente na aba Pagamentos. Erro: ${paymentError.message}`);
+          setLoading(false);
+          setForm(emptyForm());
+          setShowForm(false);
+          setEditingId(null);
+          downloadRentalContract(saved);
+          return;
+        }
+        setPayments((current) => [paymentData as Payment, ...current]);
+      }
       setOrders((current) => [...current, saved].sort((a, b) => a.event_date.localeCompare(b.event_date)));
-      setMessage("Pedido salvo. O contrato PDF gerado é preliminar e precisa de revisão.");
+      setMessage(entryAmount > 0
+        ? "Pedido e entrada inicial registrados. O contrato PDF será atualizado quando você enviar o novo modelo."
+        : "Pedido salvo. O contrato PDF será atualizado quando você enviar o novo modelo.");
       downloadRentalContract(saved);
     }
 
@@ -402,12 +487,26 @@ export default function App() {
             <div className="form-grid">
               <label>Nome do cliente<input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></label>
               <label>CPF<input required value={form.customer_cpf} onChange={(e) => setForm({ ...form, customer_cpf: e.target.value })} placeholder="000.000.000-00" /></label>
+              <label>Telefone<input type="tel" value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} /></label>
+              <label>Bairro<input value={form.customer_neighborhood} onChange={(e) => setForm({ ...form, customer_neighborhood: e.target.value })} /></label>
+              <label className="wide">Endereço<input value={form.customer_address} onChange={(e) => setForm({ ...form, customer_address: e.target.value })} /></label>
               <label className="wide">Descrição do vestido<input required value={form.dress_description} onChange={(e) => setForm({ ...form, dress_description: e.target.value })} placeholder="Ex.: vestido verde com strass, tamanho M" /></label>
               <label>Código/identificador da peça<input required value={form.dress_code} onChange={(e) => setForm({ ...form, dress_code: e.target.value })} placeholder="Ex.: VD-014" /></label>
               <label>Atendente responsável<input required value={form.attendant} onChange={(e) => setForm({ ...form, attendant: e.target.value })} /></label>
               <label>Data de confirmação<input required type="date" value={form.rental_confirmed_at} onChange={(e) => setForm({ ...form, rental_confirmed_at: e.target.value })} /></label>
               <label>Data do evento<input required type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></label>
-              <label>Valor total (R$)<input required type="number" min="0" step="0.01" value={form.total_amount} onChange={(e) => setForm({ ...form, total_amount: e.target.value })} /></label>
+              <label>Valor total do aluguel (R$)<input required type="number" min="0" step="0.01" value={form.total_amount} onChange={(e) => setForm({ ...form, total_amount: e.target.value })} /></label>
+              <label>Entrada inicial (R$)<input type="number" min="0" step="0.01" value={form.entry_amount} disabled={Boolean(editingId)} onChange={(e) => setForm({ ...form, entry_amount: e.target.value })} /><small>{editingId ? "Para registrar outro recebimento, use a aba Pagamentos." : "Será lançada automaticamente na aba Pagamentos ao criar o pedido."}</small></label>
+              <label>Retirada (data e horário)<input type="datetime-local" value={form.pickup_at} onChange={(e) => setForm({ ...form, pickup_at: e.target.value })} /></label>
+              <label>Data de devolução<input type="date" value={form.return_date} onChange={(e) => setForm({ ...form, return_date: e.target.value })} /></label>
+              <label>Multa por atraso (%)<input type="number" min="0" step="0.01" value={form.late_fee_percent} onChange={(e) => setForm({ ...form, late_fee_percent: e.target.value })} /></label>
+              <label>Mora diária (R$)<input type="number" min="0" step="0.01" value={form.daily_late_fee} onChange={(e) => setForm({ ...form, daily_late_fee: e.target.value })} /></label>
+              <label>Custo de lavanderia (R$)<input type="number" min="0" step="0.01" value={form.laundry_cost} onChange={(e) => setForm({ ...form, laundry_cost: e.target.value })} /></label>
+              <label>Indenização por dano (R$)<input type="text" readOnly value={currency(Number(form.total_amount || 0) * 3)} /></label>
+              <label className="checkbox-field">Autorização de uso de imagem
+                <input type="checkbox" checked={form.image_authorized} onChange={(e) => setForm({ ...form, image_authorized: e.target.checked })} />
+                <span>{form.image_authorized ? "Sim" : "Não"}</span>
+              </label>
             </div>
             {form.event_date && <p className="calculated-hint">Prova prevista: <strong>{formatDate(getFittingDate(form.event_date))}</strong>. Bloqueio da peça: <strong>{formatDate(getBlockedPeriod(form.event_date).start)} a {formatDate(getBlockedPeriod(form.event_date).end)}</strong>.</p>}
             <button className="primary-button" type="submit" disabled={loading}>{loading ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar pedido e gerar contrato"}</button>
