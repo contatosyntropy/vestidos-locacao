@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BellRing, CalendarDays, CheckCircle2, ClipboardList, Download,
-  LogOut, Plus, ShieldAlert, Wallet, Pencil, X, Search,
+  LogOut, Plus, ShieldAlert, Wallet, Pencil, X,
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { downloadRentalContract } from "./lib/contracts";
@@ -326,7 +326,7 @@ export default function App() {
     [confirmed],
   );
 
-  const totalContracted = confirmed.reduce((sum, order) => sum + Number(order.total_amount), 0);
+  /*const totalContracted = confirmed.reduce((sum, order) => sum + Number(order.total_amount), 0);*/
   const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const totalBalance = confirmed.reduce((sum, order) => sum + balanceFor(order, payments), 0);
 
