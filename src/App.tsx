@@ -112,7 +112,6 @@ export default function App() {
       setMessage("Entre na sua conta para registrar pedidos.");
       return;
     }
-    const fittingDate = getFittingDate(form.event_date);
     const newOrder = {
       customer_name: form.customer_name.trim(),
       customer_cpf: form.customer_cpf.trim(),
@@ -124,7 +123,6 @@ export default function App() {
       total_amount: Number(form.total_amount),
       status: "confirmado" as const,
       fitting_status: "pendente" as const,
-      fitting_date: fittingDate,
     };
 
     if (newOrder.total_amount < 0 || !Number.isFinite(newOrder.total_amount)) {
