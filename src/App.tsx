@@ -20,6 +20,8 @@ type OrderForm = {
   customer_neighborhood: string;
   dress_description: string;
   dress_code: string;
+  adjustments: string;
+  adjustment_status: "pendente" | "feito";
   rental_confirmed_at: string;
   event_date: string;
   attendant: string;
@@ -46,6 +48,8 @@ const emptyForm = (): OrderForm => ({
   customer_neighborhood: "",
   dress_description: "",
   dress_code: "",
+  adjustments: "",
+  adjustment_status: "pendente",
   rental_confirmed_at: today(),
   event_date: "",
   attendant: "",
@@ -209,6 +213,8 @@ export default function App() {
       customer_neighborhood: order.customer_neighborhood ?? "",
       dress_description: order.dress_description,
       dress_code: order.dress_code,
+      adjustments: order.adjustments ?? "",
+      adjustment_status: order.adjustment_status ?? "pendente",
       rental_confirmed_at: order.rental_confirmed_at,
       event_date: order.event_date,
       attendant: order.attendant,
@@ -266,6 +272,8 @@ export default function App() {
       customer_neighborhood: form.customer_neighborhood.trim() || null,
       dress_description: form.dress_description.trim(),
       dress_code: form.dress_code.trim(),
+      adjustments: form.adjustments.trim(),
+      adjustment_status: form.adjustment_status,
       rental_confirmed_at: form.rental_confirmed_at,
       event_date: form.event_date,
       attendant: form.attendant.trim(),
@@ -785,6 +793,8 @@ export default function App() {
               <label className="wide">Endereço<input value={form.customer_address} onChange={(e) => setForm({ ...form, customer_address: e.target.value })} /></label>
               <label className="wide">Descrição do vestido<input required value={form.dress_description} onChange={(e) => setForm({ ...form, dress_description: e.target.value })} placeholder="Ex.: vestido verde com strass, tamanho M" /></label>
               <label>Código/identificador da peça<input required value={form.dress_code} onChange={(e) => setForm({ ...form, dress_code: e.target.value })} placeholder="Ex.: VD-014" /></label>
+              <label className="wide">Ajustes necessários<textarea rows={4} value={form.adjustments} onChange={(e) => setForm({ ...form, adjustments: e.target.value })} placeholder="Descreva os ajustes necessários no vestido ou traje..." /></label>
+              <label>Status do ajuste<select value={form.adjustment_status} onChange={(e) => setForm({ ...form, adjustment_status: e.target.value as "pendente" | "feito" })}><option value="pendente">Pendente de ajuste</option><option value="feito">Ajuste realizado</option></select></label>
               <label>Atendente responsável<select required value={form.attendant} onChange={(e) => setForm({ ...form, attendant: e.target.value })}><option value="">Selecione o atendente</option><option value="Walter">Walter</option><option value="Jaqueline">Jaqueline</option></select></label>
               <label>Data de confirmação<input required type="date" value={form.rental_confirmed_at} onChange={(e) => setForm({ ...form, rental_confirmed_at: e.target.value })} /></label>
               <label>Data do evento<input required type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></label>
