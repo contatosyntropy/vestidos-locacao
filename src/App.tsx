@@ -103,6 +103,7 @@ export default function App() {
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
   const [reportPaymentStatus, setReportPaymentStatus] = useState("");
+  const [reportAdjustmentStatus, setReportAdjustmentStatus] = useState("");
   const [reportAttendant, setReportAttendant] = useState("");
   const [reportCustomerQuery, setReportCustomerQuery] = useState("");
   const [reportDressQuery, setReportDressQuery] = useState("");
@@ -485,6 +486,15 @@ export default function App() {
     }
   }
 
+  async function updateAdjustmentStatus(order: RentalOrder) {
+    if (!supabase) return;
+    const nextStatus = order.adjustment_status === "feito" ? "pendente" : "feito";
+    const { data, error } = await supabase.from("rental_orders").update({ adjustment_status: nextStatus }).eq("id", order.id).select().single();
+    if (error) { setMessage(`Não foi possível atualizar o ajuste: ${error.message}`); return; }
+    setOrders((current) => current.map((item) => item.id === order.id ? data as RentalOrder : item));
+    setMessage(nextStatus === "feito" ? "Ajuste marcado como realizado." : "Ajuste marcado como pendente.");
+  }
+
   async function savePayment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !userEmail) return;
@@ -567,6 +577,9 @@ export default function App() {
       if (start && date < start) return false;
       if (end && date > end) return false;
       if (reportAttendant && order.attendant !== reportAttendant) return false;
+      if (reportAdjustmentStatus === "pending" && (order.adjustment_status ?? "pendente") !== "pendente") return false;
+      if (reportAdjustmentStatus === "done" && order.adjustment_status !== "feito") return false;
+      if (reportAdjustmentStatus === "with-notes" && !order.adjustments?.trim()) return false;
       const customerQuery = reportCustomerQuery.trim().toLocaleLowerCase("pt-BR");
       const dressQuery = reportDressQuery.trim().toLocaleLowerCase("pt-BR");
       if (customerQuery && !order.customer_name.toLocaleLowerCase("pt-BR").includes(customerQuery)) return false;
@@ -582,7 +595,7 @@ export default function App() {
       const db = reportPeriodType === "created_at" ? b.created_at : reportPeriodType === "pickup_at" ? b.pickup_at || "" : b.return_date || "";
       return da.localeCompare(db);
     });
-  }, [orders, payments, reportPeriodType, reportQuickRange, reportStartDate, reportEndDate, reportPaymentStatus, reportAttendant, reportCustomerQuery, reportDressQuery]);
+  }, [orders, payments, reportPeriodType, reportQuickRange, reportStartDate, reportEndDate, reportPaymentStatus, reportAdjustmentStatus, reportAttendant, reportCustomerQuery, reportDressQuery]);
   const reportTotals = useMemo(() => reportOrders.reduce((acc, order) => {
     acc.contracts += Number(order.total_amount || 0);
     acc.paid += payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
@@ -591,10 +604,10 @@ export default function App() {
   }, { contracts: 0, paid: 0, balance: 0 }), [reportOrders, payments]);
 
   function exportReportCsv() {
-    const headers = ["Cliente", "CPF", "Telefone", "Peça", "Código", "Data do pedido", "Retirada", "Devolução", "Evento", "Atendente", "Valor contratado", "Valor pago", "Saldo"];
+    const headers = ["Cliente", "CPF", "Telefone", "Peça", "Código", "Ajustes", "Status do ajuste", "Data do pedido", "Retirada", "Devolução", "Evento", "Atendente", "Valor contratado", "Valor pago", "Saldo"];
     const rows = reportOrders.map((order) => {
       const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
-      return [order.customer_name, order.customer_cpf, order.customer_phone || "", order.dress_description, order.dress_code, order.created_at ? formatDate(order.created_at.slice(0, 10)) : "", order.pickup_at ? formatDateTime(order.pickup_at) : "", order.return_date ? formatDate(order.return_date) : "", formatDate(order.event_date), order.attendant, order.total_amount, paid, balanceFor(order, payments)];
+      return [order.customer_name, order.customer_cpf, order.customer_phone || "", order.dress_description, order.dress_code, order.adjustments || "", (order.adjustment_status ?? "pendente") === "feito" ? "Ajuste realizado" : "Ajuste pendente", order.created_at ? formatDate(order.created_at.slice(0, 10)) : "", order.pickup_at ? formatDateTime(order.pickup_at) : "", order.return_date ? formatDate(order.return_date) : "", formatDate(order.event_date), order.attendant, order.total_amount, paid, balanceFor(order, payments)];
     });
     const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const blob = new Blob(["\\ufeff", csv], { type: "text/csv;charset=utf-8;" });
@@ -613,8 +626,8 @@ export default function App() {
     pdf.text("Relatório de locações — Imperatriz Trajes de Festa", 12, 14);
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
     pdf.text(`Registros: ${reportOrders.length} | Valor contratado: ${currency(reportTotals.contracts)} | Pago: ${currency(reportTotals.paid)} | Saldo: ${currency(reportTotals.balance)}`, 12, 21);
-    const columns = ["Cliente / peça", "Pedido", "Retirada", "Devolução", "Evento", "Atendente", "Contratado", "Pago", "Saldo"];
-    const colWidths = [55, 22, 25, 22, 22, 25, 27, 27, 27];
+    const columns = reportAdjustmentStatus ? ["Cliente / peça", "Código", "Ajustes necessários", "Status"] : ["Cliente / peça", "Pedido", "Retirada", "Devolução", "Evento", "Atendente", "Contratado", "Pago", "Saldo"];
+    const colWidths = reportAdjustmentStatus ? [55, 25, 130, 35] : [55, 22, 25, 22, 22, 25, 27, 27, 27];
     let y = 31;
     const drawHeader = () => {
       pdf.setFont("helvetica", "bold"); pdf.setFontSize(7);
@@ -627,7 +640,7 @@ export default function App() {
     reportOrders.forEach((order) => {
       if (y > 190) { pdf.addPage(); y = 15; drawHeader(); }
       const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
-      const values = [`${order.customer_name} / ${order.dress_description}`, order.created_at ? formatDate(order.created_at.slice(0,10)) : "-", order.pickup_at ? formatDateTime(order.pickup_at) : "-", order.return_date ? formatDate(order.return_date) : "-", formatDate(order.event_date), order.attendant || "-", currency(order.total_amount), currency(paid), currency(balanceFor(order, payments))];
+      const values = reportAdjustmentStatus ? [`${order.customer_name} / ${order.dress_description}`, order.dress_code || "-", order.adjustments || "Sem descrição informada", (order.adjustment_status ?? "pendente") === "feito" ? "Realizado" : "Pendente"] : [`${order.customer_name} / ${order.dress_description}`, order.created_at ? formatDate(order.created_at.slice(0,10)) : "-", order.pickup_at ? formatDateTime(order.pickup_at) : "-", order.return_date ? formatDate(order.return_date) : "-", formatDate(order.event_date), order.attendant || "-", currency(order.total_amount), currency(paid), currency(balanceFor(order, payments))];
       pdf.setFont("helvetica", "normal"); pdf.setFontSize(6.5);
       let x = 12;
       values.forEach((value, i) => { pdf.text(pdf.splitTextToSize(String(value), colWidths[i] - 2).slice(0, 2), x, y); x += colWidths[i]; });
@@ -817,7 +830,7 @@ export default function App() {
 
           <section className="section-block">
             <div className="section-heading"><div><h2>Pedidos de locação</h2><p>Consulte, edite e gere novamente o contrato preliminar.</p></div><span className="subtle-pill">{loading ? "Carregando…" : `${orders.length} registros`}</span></div>
-            <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Evento</th><th>Valor / saldo</th><th>Prova</th><th>Ações</th></tr></thead>
+            <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Evento</th><th>Valor / saldo</th><th>Ajustes</th><th>Prova</th><th>Ações</th></tr></thead>
               <tbody>{orders.map((order) => <tr key={order.id}>
                 <td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description}</span><span className="code-pill">{order.dress_code || "Sem código"}</span></td>
                 <td>{formatDate(order.event_date)}<span className="table-sub">Confirmação: {formatDate(order.rental_confirmed_at)}</span></td>
@@ -829,6 +842,7 @@ export default function App() {
                     {balanceFor(order, payments) > 0.009 ? "Pendente" : "Quitado"}
                   </span>
                 </td>
+                <td><span className={`status-pill ${order.adjustment_status === "feito" ? "realizada" : "pendente"}`}>{order.adjustment_status === "feito" ? "Ajuste realizado" : "Ajuste pendente"}</span>{order.adjustments?.trim() && <span className="table-sub">{order.adjustments}</span>}<button className="inline-action" onClick={() => void updateAdjustmentStatus(order)}>{order.adjustment_status === "feito" ? "Reabrir ajuste" : "Marcar realizado"}</button></td>
                 <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => openFittingScheduler(order)}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}</td>
                 <td><button className="icon-button" onClick={() => startEditOrder(order)} title="Editar pedido"><Pencil size={14} /> Editar</button>{" "}<button className="icon-button" title="Baixar contrato PDF" onClick={() => downloadRentalContract(order)}><Download size={14} /> PDF</button>{" "}<button className="icon-button danger-action" title="Excluir pedido" disabled={loading} onClick={() => void deleteOrder(order)}><Trash2 size={14} /> Excluir</button></td>
               </tr>)}</tbody></table>
@@ -928,12 +942,13 @@ export default function App() {
             <label>Atalho de período<select value={reportQuickRange} onChange={(e) => { setReportQuickRange(e.target.value); if (e.target.value === "custom") { setReportStartDate(""); setReportEndDate(""); } }}><option value="all">Todo o período</option><option value="today">Hoje</option><option value="week">Esta semana</option><option value="month">Este mês</option><option value="30days">Últimos 30 dias</option><option value="custom">Personalizado</option></select></label>
             {reportQuickRange === "custom" && <><label>Data inicial<input type="date" value={reportStartDate} onChange={(e) => setReportStartDate(e.target.value)} /></label><label>Data final<input type="date" value={reportEndDate} onChange={(e) => setReportEndDate(e.target.value)} /></label></>}
             <label>Status do pagamento<select value={reportPaymentStatus} onChange={(e) => setReportPaymentStatus(e.target.value)}><option value="">Todos</option><option value="paid">Integralmente pago</option><option value="pending">Pendente de pagamento</option></select></label>
+            <label>Status dos ajustes<select value={reportAdjustmentStatus} onChange={(e) => setReportAdjustmentStatus(e.target.value)}><option value="">Todos</option><option value="pending">Ajustes pendentes</option><option value="done">Ajustes realizados</option><option value="with-notes">Pedidos com descrição de ajustes</option></select></label>
             <label>Atendente<select value={reportAttendant} onChange={(e) => setReportAttendant(e.target.value)}><option value="">Todos os atendentes</option>{reportAttendants.map((attendant) => <option key={attendant} value={attendant}>{attendant}</option>)}</select></label>
             <label>Cliente<input type="search" placeholder="Digite o nome do cliente..." value={reportCustomerQuery} onChange={(e) => setReportCustomerQuery(e.target.value)} /></label>
             <label>Vestido ou código<input type="search" placeholder="Descrição ou código da peça..." value={reportDressQuery} onChange={(e) => setReportDressQuery(e.target.value)} /></label>
           </div>
           <div className="report-summary-cards"><article><span>Pedidos encontrados</span><strong>{reportOrders.length}</strong></article><article><span>Valor contratado</span><strong>{currency(reportTotals.contracts)}</strong></article><article><span>Total recebido</span><strong>{currency(reportTotals.paid)}</strong></article><article><span>Saldo pendente</span><strong>{currency(reportTotals.balance)}</strong></article></div>
-          <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Data do pedido</th><th>Retirada</th><th>Devolução</th><th>Evento</th><th>Atendente</th><th>Contratado</th><th>Pago</th><th>Saldo</th></tr></thead><tbody>{reportOrders.map((order) => { const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0); return <tr key={order.id}><td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description} · {order.dress_code}</span></td><td>{order.created_at ? formatDate(order.created_at.slice(0,10)) : "—"}</td><td>{order.pickup_at ? formatDateTime(order.pickup_at) : "—"}</td><td>{order.return_date ? formatDate(order.return_date) : "—"}</td><td>{formatDate(order.event_date)}</td><td>{order.attendant}</td><td>{currency(order.total_amount)}</td><td>{currency(paid)}</td><td>{currency(balanceFor(order, payments))}</td></tr>; })}</tbody></table>{reportOrders.length===0 && <div className="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>}</div>
+          <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Ajustes</th><th>Data do pedido</th><th>Retirada</th><th>Devolução</th><th>Evento</th><th>Atendente</th><th>Contratado</th><th>Pago</th><th>Saldo</th></tr></thead><tbody>{reportOrders.map((order) => { const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0); return <tr key={order.id}><td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description} · {order.dress_code}</span></td><td><span className={`status-pill ${order.adjustment_status === "feito" ? "realizada" : "pendente"}`}>{order.adjustment_status === "feito" ? "Realizado" : "Pendente"}</span><span className="table-sub">{order.adjustments || "—"}</span></td><td>{order.created_at ? formatDate(order.created_at.slice(0,10)) : "—"}</td><td>{order.pickup_at ? formatDateTime(order.pickup_at) : "—"}</td><td>{order.return_date ? formatDate(order.return_date) : "—"}</td><td>{formatDate(order.event_date)}</td><td>{order.attendant}</td><td>{currency(order.total_amount)}</td><td>{currency(paid)}</td><td>{currency(balanceFor(order, payments))}</td></tr>; })}</tbody></table>{reportOrders.length===0 && <div className="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>}</div>
         </section>}
 
         {activeTab === "fittings" && <section className="section-block">
