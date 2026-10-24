@@ -180,7 +180,7 @@ export default function App() {
       email: email.trim(),
       password,
     });
-    setMessage(error ? `Não foi possível entrar: ${error.message}` : "Login realizado.");
+    if (error) setMessage(`Não foi possível entrar: ${error.message}`);
     setAuthLoading(false);
   }
 
