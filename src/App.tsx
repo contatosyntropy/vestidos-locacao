@@ -741,7 +741,7 @@ export default function App() {
           <div className="topbar-actions"><span className="signed-in-email">{userEmail}</span><button className="secondary-button" onClick={() => void handleLogout()}><LogOut size={16} /> Sair</button>{activeTab === "orders" && <button className="primary-button" onClick={startNewOrder}><Plus size={17} /> Novo pedido</button>}</div>
         </header>
 
-        <div className="notice"><span className="notice-icon"><ShieldAlert size={18} /></span><div><strong>Informações do sistema</strong><p>{message}</p></div></div>
+        {userEmail && message && <p className="system-feedback" role="status">{message}</p>}
 
         {fittingOrderId && <div className="fitting-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !fittingSaving) setFittingOrderId(null); }}>
           <section className="fitting-modal" role="dialog" aria-modal="true" aria-labelledby="fitting-modal-title">
