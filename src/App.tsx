@@ -695,14 +695,14 @@ export default function App() {
   const paymentOrder = orders.find((order) => order.id === paymentOrderId);
 
   if (!authReady) {
-    return <main className="auth-shell"><section className="auth-card"><div className="brand-mark">A</div><h1>ATELIÊ</h1><p>Verificando sua sessão...</p></section></main>;
+    return <main className="auth-shell"><section className="auth-card"><div className="brand-mark">I</div><h1>IMPERATRIZ</h1><p>Verificando sua sessão...</p></section></main>;
   }
 
   if (!userEmail) {
     return (
       <main className="auth-shell">
         <section className="auth-card">
-          <div className="brand-mark auth-brand">A</div>
+          <div className="brand-mark auth-brand">I</div>
           <span className="eyebrow">GESTÃO DE LOCAÇÕES</span>
           <h1>Acesse sua loja</h1>
           <p className="auth-description">Entre com o e-mail e a senha da conta autorizada para acessar os pedidos.</p>
@@ -722,8 +722,8 @@ export default function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <div className="brand-mark">A</div>
-        <div className="brand-copy"><strong>ATELIÊ</strong><span>GESTÃO DE LOCAÇÕES</span></div>
+        <div className="brand-mark">I</div>
+        <div className="brand-copy"><strong>IMPERATRIZ</strong><span>GESTÃO DE LOCAÇÕES</span></div>
         <nav>
           <button type="button" className={`nav-item ${activeTab === "orders" ? "active" : ""}`} onClick={() => setActiveTab("orders")}><ClipboardList size={18} /> Pedidos</button>
           <button type="button" className={`nav-item ${activeTab === "availability" ? "active" : ""}`} onClick={() => setActiveTab("availability")}><CalendarDays size={18} /> Disponibilidade</button>
