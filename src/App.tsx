@@ -100,6 +100,8 @@ export default function App() {
   const [reportEndDate, setReportEndDate] = useState("");
   const [reportPaymentStatus, setReportPaymentStatus] = useState("");
   const [reportAttendant, setReportAttendant] = useState("");
+  const [reportCustomerQuery, setReportCustomerQuery] = useState("");
+  const [reportDressQuery, setReportDressQuery] = useState("");
 
 
   useEffect(() => {
@@ -557,6 +559,11 @@ export default function App() {
       if (start && date < start) return false;
       if (end && date > end) return false;
       if (reportAttendant && order.attendant !== reportAttendant) return false;
+      const customerQuery = reportCustomerQuery.trim().toLocaleLowerCase("pt-BR");
+      const dressQuery = reportDressQuery.trim().toLocaleLowerCase("pt-BR");
+      if (customerQuery && !order.customer_name.toLocaleLowerCase("pt-BR").includes(customerQuery)) return false;
+      const dressSearchText = `${order.dress_description || ""} ${order.dress_code || ""}`.toLocaleLowerCase("pt-BR");
+      if (dressQuery && !dressSearchText.includes(dressQuery)) return false;
       const paid = payments.reduce((sum, payment) => payment.order_id === order.id ? sum + Number(payment.amount) : sum, 0);
       const balance = Math.max(0, Number(order.total_amount || 0) - paid);
       if (reportPaymentStatus === "paid" && balance > 0.009) return false;
@@ -567,7 +574,7 @@ export default function App() {
       const db = reportPeriodType === "created_at" ? b.created_at : reportPeriodType === "pickup_at" ? b.pickup_at || "" : b.return_date || "";
       return da.localeCompare(db);
     });
-  }, [orders, payments, reportPeriodType, reportQuickRange, reportStartDate, reportEndDate, reportPaymentStatus, reportAttendant]);
+  }, [orders, payments, reportPeriodType, reportQuickRange, reportStartDate, reportEndDate, reportPaymentStatus, reportAttendant, reportCustomerQuery, reportDressQuery]);
   const reportTotals = useMemo(() => reportOrders.reduce((acc, order) => {
     acc.contracts += Number(order.total_amount || 0);
     acc.paid += payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
@@ -910,6 +917,8 @@ export default function App() {
             {reportQuickRange === "custom" && <><label>Data inicial<input type="date" value={reportStartDate} onChange={(e) => setReportStartDate(e.target.value)} /></label><label>Data final<input type="date" value={reportEndDate} onChange={(e) => setReportEndDate(e.target.value)} /></label></>}
             <label>Status do pagamento<select value={reportPaymentStatus} onChange={(e) => setReportPaymentStatus(e.target.value)}><option value="">Todos</option><option value="paid">Integralmente pago</option><option value="pending">Pendente de pagamento</option></select></label>
             <label>Atendente<select value={reportAttendant} onChange={(e) => setReportAttendant(e.target.value)}><option value="">Todos os atendentes</option>{reportAttendants.map((attendant) => <option key={attendant} value={attendant}>{attendant}</option>)}</select></label>
+            <label>Cliente<input type="search" placeholder="Digite o nome do cliente..." value={reportCustomerQuery} onChange={(e) => setReportCustomerQuery(e.target.value)} /></label>
+            <label>Vestido ou código<input type="search" placeholder="Descrição ou código da peça..." value={reportDressQuery} onChange={(e) => setReportDressQuery(e.target.value)} /></label>
           </div>
           <div className="report-summary-cards"><article><span>Pedidos encontrados</span><strong>{reportOrders.length}</strong></article><article><span>Valor contratado</span><strong>{currency(reportTotals.contracts)}</strong></article><article><span>Total recebido</span><strong>{currency(reportTotals.paid)}</strong></article><article><span>Saldo pendente</span><strong>{currency(reportTotals.balance)}</strong></article></div>
           <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Data do pedido</th><th>Retirada</th><th>Devolução</th><th>Evento</th><th>Atendente</th><th>Contratado</th><th>Pago</th><th>Saldo</th></tr></thead><tbody>{reportOrders.map((order) => { const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0); return <tr key={order.id}><td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description} · {order.dress_code}</span></td><td>{order.created_at ? formatDate(order.created_at.slice(0,10)) : "—"}</td><td>{order.pickup_at ? formatDateTime(order.pickup_at) : "—"}</td><td>{order.return_date ? formatDate(order.return_date) : "—"}</td><td>{formatDate(order.event_date)}</td><td>{order.attendant}</td><td>{currency(order.total_amount)}</td><td>{currency(paid)}</td><td>{currency(balanceFor(order, payments))}</td></tr>; })}</tbody></table>{reportOrders.length===0 && <div className="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>}</div>
