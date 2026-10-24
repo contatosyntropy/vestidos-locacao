@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BellRing, CalendarDays, CheckCircle2, ClipboardList, Download,
-  LogOut, Plus, ShieldAlert, Wallet, Pencil, X, AlertTriangle, Clock3, Trash2, FileBarChart, FileSpreadsheet,
+  LogOut, Plus, Wallet, Pencil, X, AlertTriangle, Clock3, Trash2, FileBarChart, FileSpreadsheet,
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { downloadRentalContract } from "./lib/contracts";
