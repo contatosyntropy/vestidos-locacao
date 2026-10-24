@@ -738,7 +738,7 @@ export default function App() {
                 <td>{formatDate(order.event_date)}</td>
                 <td>{formatDate(fittingDate)}</td>
                 <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span></td>
-                <td>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => void updateFitting(order, "agendada")}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}{order.fitting_status === "realizada" && <span className="table-sub">Concluída</span>}</td>
+                <td>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => openFittingScheduler(order)}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}{order.fitting_status === "realizada" && <span className="table-sub">Concluída</span>}</td>
               </tr>;
             })}</tbody></table>
             {confirmed.length === 0 && <div className="empty-state">Não há locações confirmadas para acompanhar.</div>}
