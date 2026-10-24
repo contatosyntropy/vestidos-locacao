@@ -969,6 +969,19 @@ function formatDate(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+function formatDateTime(value: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function labelFitting(status: RentalOrder["fitting_status"]) {
   if (status === "pendente") return "Pendente";
   if (status === "agendada") return "Agendada";
