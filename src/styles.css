@@ -266,3 +266,22 @@ tbody tr:last-child td{border-bottom:0}
   .topbar-actions .primary-button,.signed-in-email{grid-column:auto}
   .priority-total{max-width:40%}
 }
+
+
+/* Modal de agendamento de prova */
+.fitting-modal-backdrop{
+  position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
+  padding:18px;background:rgba(35,25,49,.42);backdrop-filter:blur(4px);
+}
+.fitting-modal{
+  width:min(100%,460px);padding:25px;background:#fff;border:1px solid #eee7f7;
+  border-radius:18px;box-shadow:0 24px 80px #21132e38;
+}
+.fitting-modal .form-heading{align-items:flex-start;margin-bottom:22px}
+.fitting-modal .form-heading h2{font-family:'Playfair Display',serif;font-size:24px;margin:7px 0 5px}
+.fitting-modal .form-heading p{margin:0;font-size:12px;color:#898394}
+.fitting-date-label{display:grid;gap:8px;margin-bottom:14px;font-size:12px;font-weight:700;color:#6c6479}
+.fitting-date-label input{width:100%;min-height:46px;border:1px solid #e5dfed;border-radius:9px;padding:11px 12px;font:inherit;font-weight:400;color:#30283d;background:#fff}
+.fitting-date-label input:focus{outline:none;border-color:#a88ae7;box-shadow:0 0 0 3px #5722c512}
+.fitting-modal .primary-button{width:100%}
+@media(max-width:600px){.fitting-modal{padding:21px 17px;border-radius:15px}.fitting-modal .form-heading{gap:8px}}
