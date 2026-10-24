@@ -515,15 +515,18 @@ export default function App() {
             <div><h2><AlertTriangle size={17} /> Prioridades</h2><p>Pagamentos pendentes e compromissos dos próximos 7 dias.</p></div>
           </div>
           <div className="priority-grid">
-            <button type="button" className="priority-card payment-priority" onClick={() => setActiveTab("payments")}>
-              <span className="priority-icon"><Wallet size={17} /></span>
-              <span className="priority-copy"><strong>Pagamento pendente</strong><small>{paymentPendingOrders.length} {paymentPendingOrders.length === 1 ? "locação com saldo" : "locações com saldo"}</small></span>
-              <strong className="priority-value">{currency(totalBalance)}</strong>
+            <button type="button" className={`priority-card payment-priority ${paymentPendingOrders.length ? "has-pending" : "all-paid"}`} onClick={() => setActiveTab("payments")}>
+              <span className="priority-icon"><Wallet size={19} /></span>
+              <span className="priority-copy"><strong>{paymentPendingOrders.length ? "Pagamentos pendentes" : "Tudo quitado"}</strong><small>{paymentPendingOrders.length ? `${paymentPendingOrders.length} ${paymentPendingOrders.length === 1 ? "locação com saldo" : "locações com saldo"}` : "Nenhum saldo em aberto"}</small></span>
+              <span className="priority-total"><strong>{currency(totalBalance)}</strong><small>{paymentPendingOrders.length ? "Falta receber" : "Saldo em aberto"}</small></span>
+              <span className="priority-open">Ver pagamentos <span aria-hidden="true">→</span></span>
             </button>
             <div className="priority-card upcoming-card">
-              <span className="priority-icon"><Clock3 size={17} /></span>
-              <span className="priority-copy"><strong>Próximas atividades</strong><small>Provas, retiradas e devoluções</small></span>
-              <button type="button" className="inline-action" onClick={() => setActiveTab("fittings")}>Ver agenda</button>
+              <div className="upcoming-card-heading">
+                <span className="priority-icon"><Clock3 size={19} /></span>
+                <span className="priority-copy"><strong>Próximas atividades</strong><small>Provas, retiradas e devoluções</small></span>
+                <button type="button" className="agenda-button" onClick={() => setActiveTab("fittings")}>Abrir agenda <span aria-hidden="true">→</span></button>
+              </div>
               {upcomingPriorities.length > 0 ? <ul className="priority-list">
                 {upcomingPriorities.map((item, index) => <li key={item.order.id + item.kind + item.date + index}>
                   <span className="priority-date">{formatDate(item.date)}</span>
@@ -572,7 +575,14 @@ export default function App() {
               <tbody>{orders.map((order) => <tr key={order.id}>
                 <td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description}</span><span className="code-pill">{order.dress_code || "Sem código"}</span></td>
                 <td>{formatDate(order.event_date)}<span className="table-sub">Confirmação: {formatDate(order.rental_confirmed_at)}</span></td>
-                <td><strong>{currency(Number(order.total_amount))}</strong><span className="table-sub">Saldo: {currency(balanceFor(order, payments))}</span>{balanceFor(order, payments) > 0.009 && <span className="status-pill pagamento-pendente">Pagamento pendente</span>}{balanceFor(order, payments) <= 0.009 && <span className="status-pill pagamento-quitado">Quitado</span>}</td>
+                <td>
+                  <strong>Total: {currency(Number(order.total_amount))}</strong>
+                  <span className="table-sub">Pago: {currency(paidFor(order, payments))}</span>
+                  <span className="table-sub balance-emphasis">Falta: {currency(balanceFor(order, payments))}</span>
+                  <span className={`status-pill payment-status ${balanceFor(order, payments) > 0.009 ? "pagamento-pendente" : "pagamento-quitado"}`}>
+                    {balanceFor(order, payments) > 0.009 ? "Pendente" : "Quitado"}
+                  </span>
+                </td>
                 <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => void updateFitting(order, "agendada")}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}</td>
                 <td><button className="icon-button" onClick={() => startEditOrder(order)} title="Editar pedido"><Pencil size={14} /> Editar</button>{" "}<button className="icon-button" title="Gerar contrato preliminar" onClick={() => downloadRentalContract(order)}><Download size={14} /> PDF</button></td>
               </tr>)}</tbody></table>
