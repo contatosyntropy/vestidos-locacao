@@ -88,6 +88,9 @@ export default function App() {
   const [paymentMethod, setPaymentMethod] = useState("Pix");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentSaving, setPaymentSaving] = useState(false);
+  const [fittingOrderId, setFittingOrderId] = useState<string | null>(null);
+  const [fittingDateInput, setFittingDateInput] = useState("");
+  const [fittingSaving, setFittingSaving] = useState(false);
 
   useEffect(() => {
     if (!supabase) {
@@ -362,6 +365,37 @@ export default function App() {
     setMessage(status === "agendada" ? "Prova marcada como agendada." : "Prova marcada como realizada.");
   }
 
+  function openFittingScheduler(order: RentalOrder) {
+    setFittingOrderId(order.id);
+    setFittingDateInput(order.fitting_date || getFittingDate(order.event_date));
+  }
+
+  async function saveFittingSchedule(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase || !userEmail || !fittingOrderId || !fittingDateInput) return;
+
+    setFittingSaving(true);
+    const { error } = await supabase
+      .from("rental_orders")
+      .update({ fitting_status: "agendada", fitting_date: fittingDateInput })
+      .eq("id", fittingOrderId);
+    setFittingSaving(false);
+
+    if (error) {
+      setMessage(`Não foi possível salvar a data da prova: ${error.message}`);
+      return;
+    }
+
+    setOrders((current) => current.map((item) =>
+      item.id === fittingOrderId
+        ? { ...item, fitting_status: "agendada", fitting_date: fittingDateInput }
+        : item,
+    ));
+    setFittingOrderId(null);
+    setFittingDateInput("");
+    setMessage("Data da prova salva e agendamento atualizado.");
+  }
+
   async function savePayment(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase || !userEmail) return;
@@ -504,6 +538,22 @@ export default function App() {
 
         <div className="notice"><span className="notice-icon"><ShieldAlert size={18} /></span><div><strong>Informações do sistema</strong><p>{message}</p></div></div>
 
+        {fittingOrderId && <div className="fitting-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !fittingSaving) setFittingOrderId(null); }}>
+          <section className="fitting-modal" role="dialog" aria-modal="true" aria-labelledby="fitting-modal-title">
+            <div className="form-heading">
+              <div><span className="eyebrow">AGENDA DE PROVAS</span><h2 id="fitting-modal-title">Agendar prova</h2><p>{orders.find((order) => order.id === fittingOrderId)?.customer_name ?? "Selecione a data"}</p></div>
+              <button className="text-button" type="button" disabled={fittingSaving} onClick={() => setFittingOrderId(null)}><X size={14} /> Cancelar</button>
+            </div>
+            <form onSubmit={saveFittingSchedule}>
+              <label className="fitting-date-label">Data da prova
+                <input type="date" required value={fittingDateInput} onChange={(event) => setFittingDateInput(event.target.value)} />
+              </label>
+              <p className="calculated-hint">A data escolhida ficará salva no cadastro da locação e aparecerá na agenda de provas.</p>
+              <button className="primary-button" type="submit" disabled={fittingSaving || !fittingDateInput}>{fittingSaving ? "Salvando..." : "Salvar agendamento"}</button>
+            </form>
+          </section>
+        </div>}
+
         <div className="stats-grid">
           <article className="stat-card"><span>Pedidos confirmados</span><strong>{confirmed.length}</strong><small><CheckCircle2 size={14} /> Locações ativas</small></article>
           <article className="stat-card"><span>Provas pendentes</span><strong>{pendingFittings.length}</strong><small><BellRing size={14} /> Exigem acompanhamento</small></article>
@@ -583,7 +633,7 @@ export default function App() {
                     {balanceFor(order, payments) > 0.009 ? "Pendente" : "Quitado"}
                   </span>
                 </td>
-                <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => void updateFitting(order, "agendada")}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}</td>
+                <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => openFittingScheduler(order)}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}</td>
                 <td><button className="icon-button" onClick={() => startEditOrder(order)} title="Editar pedido"><Pencil size={14} /> Editar</button>{" "}<button className="icon-button" title="Gerar contrato preliminar" onClick={() => downloadRentalContract(order)}><Download size={14} /> PDF</button></td>
               </tr>)}</tbody></table>
               {orders.length === 0 && <div className="empty-state">{loading ? "Carregando pedidos..." : "Nenhum pedido cadastrado. Use “Novo pedido” para começar."}</div>}
