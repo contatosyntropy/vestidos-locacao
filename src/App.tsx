@@ -158,7 +158,6 @@ export default function App() {
       setMessage(`Pedidos carregados, mas os pagamentos não puderam ser consultados: ${paymentsResult.error.message}`);
     } else {
       setPayments((paymentsResult.data ?? []) as Payment[]);
-      if (!ordersResult.error) setMessage("Dados atualizados a partir do Supabase.");
     }
 
     setLoading(false);
