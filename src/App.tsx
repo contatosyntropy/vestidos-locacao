@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BellRing, CalendarDays, CheckCircle2, ClipboardList, Download,
-  LogOut, Plus, ShieldAlert, Wallet, Pencil, X, AlertTriangle, Clock3,
+  LogOut, Plus, ShieldAlert, Wallet, Pencil, X, AlertTriangle, Clock3, Trash2,
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { downloadRentalContract } from "./lib/contracts";
@@ -347,6 +347,47 @@ export default function App() {
     setEditingId(null);
   }
 
+  async function deleteOrder(order: RentalOrder) {
+    if (!supabase || !userEmail) {
+      setMessage("Sua sessão expirou ou a conexão com o Supabase não está configurada.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Tem certeza de que deseja excluir o pedido de ${order.customer_name} (peça ${order.dress_code || order.dress_description})? Essa ação não pode ser desfeita. Os pagamentos vinculados também serão excluídos.`,
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      const { error: paymentsError } = await supabase
+        .from("payments")
+        .delete()
+        .eq("order_id", order.id);
+      if (paymentsError) {
+        setMessage(`Não foi possível excluir os pagamentos vinculados: ${paymentsError.message}`);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("rental_orders")
+        .delete()
+        .eq("id", order.id);
+      if (error) {
+        setMessage(`Não foi possível excluir o pedido: ${error.message}`);
+        return;
+      }
+
+      setOrders((current) => current.filter((item) => item.id !== order.id));
+      setPayments((current) => current.filter((payment) => payment.order_id !== order.id));
+      setMessage("Pedido e pagamentos vinculados excluídos.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      setMessage(`Erro inesperado ao excluir o pedido: ${detail}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function updateFitting(order: RentalOrder, status: "agendada" | "realizada") {
     if (!supabase || !userEmail) return;
 
@@ -669,7 +710,7 @@ export default function App() {
                   </span>
                 </td>
                 <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => openFittingScheduler(order)}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}</td>
-                <td><button className="icon-button" onClick={() => startEditOrder(order)} title="Editar pedido"><Pencil size={14} /> Editar</button>{" "}<button className="icon-button" title="Gerar contrato preliminar" onClick={() => downloadRentalContract(order)}><Download size={14} /> PDF</button></td>
+                <td><button className="icon-button" onClick={() => startEditOrder(order)} title="Editar pedido"><Pencil size={14} /> Editar</button>{" "}<button className="icon-button" title="Baixar contrato PDF" onClick={() => downloadRentalContract(order)}><Download size={14} /> PDF</button>{" "}<button className="icon-button danger-action" title="Excluir pedido" disabled={loading} onClick={() => void deleteOrder(order)}><Trash2 size={14} /> Excluir</button></td>
               </tr>)}</tbody></table>
               {orders.length === 0 && <div className="empty-state">{loading ? "Carregando pedidos..." : "Nenhum pedido cadastrado. Use “Novo pedido” para começar."}</div>}
             </div>
