@@ -312,3 +312,28 @@ tbody tr:last-child td{border-bottom:0}
   .order-modal-form .form-grid .wide{grid-column:auto}
   .order-modal-form>.primary-button{bottom:-22px;width:calc(100% + 32px);margin:18px -16px -22px;padding:16px;border-radius:0 0 14px 14px}
 }
+
+
+/* Calendário anual de disponibilidade */
+.availability-controls{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(130px,.7fr) minmax(180px,1fr);gap:14px;margin:20px 0}
+.availability-controls label{display:grid;gap:7px;font-size:12px;font-weight:650;color:#6c6479}
+.availability-controls input,.availability-controls select{width:100%;min-height:43px;border:1px solid #e5dfed;border-radius:9px;padding:10px 12px;background:#fff;color:#30283d;font:inherit;font-weight:400}
+.availability-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:4px 0 18px;color:#81798e;font-size:11px}
+.availability-legend span{display:flex;align-items:center;gap:7px}
+.availability-dot{display:inline-block;width:10px;height:10px;border-radius:3px}
+.availability-dot.blocked{background:#d94848}.availability-dot.available{background:#e9e5ef;border:1px solid #d8d1e2}
+.availability-year-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 28px}
+.availability-month{min-width:0;border:1px solid #eee8f4;border-radius:12px;padding:12px;background:#fff}
+.availability-month h3{font-size:13px;font-weight:700;color:#392d4b;margin:0 0 10px}
+.availability-weekdays,.availability-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.availability-weekdays{margin-bottom:4px}
+.availability-weekdays span{font-size:9px;color:#a49bad;padding:3px 0}
+.availability-day{display:flex;align-items:center;justify-content:center;min-width:0;aspect-ratio:1;padding:0;border:0;border-radius:5px;background:#f4f1f8;color:#5c526b;font-size:10px;cursor:pointer}
+.availability-day.empty{background:transparent;cursor:default}
+.availability-day.blocked{background:#d94848;color:#fff;font-weight:700}
+.availability-day.selected{outline:2px solid #5722c5;outline-offset:1px;position:relative;z-index:1}
+.availability-day:hover:not(.empty){filter:brightness(.95)}
+.availability-results-heading{margin-top:24px}
+@media(max-width:1050px){.availability-year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.availability-controls{grid-template-columns:1fr}.availability-year-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.availability-month{padding:8px}.availability-day{font-size:9px;border-radius:4px}.availability-legend{gap:10px}}
+@media(max-width:420px){.availability-year-grid{grid-template-columns:1fr 1fr}.availability-month h3{font-size:12px}}
