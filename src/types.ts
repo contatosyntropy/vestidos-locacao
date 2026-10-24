@@ -11,6 +11,8 @@ export interface RentalOrder {
   customer_neighborhood?: string | null;
   dress_description: string;
   dress_code: string;
+  adjustments?: string | null;
+  adjustment_status?: "pendente" | "feito";
   rental_confirmed_at: string;
   event_date: string;
   attendant: string;
