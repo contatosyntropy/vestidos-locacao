@@ -617,8 +617,8 @@ export default function App() {
         </section>
 
         {activeTab === "orders" && <>
-          {showForm && <form className="order-form" onSubmit={saveOrder}>
-            <div className="form-heading"><div><h2>{editingId ? "Editar pedido" : "Novo pedido"}</h2><p>{editingId ? "Altere os dados e salve as mudanças." : "O contrato PDF será gerado após o registro."}</p></div><button className="text-button" type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm()); }}><X size={14} /> Cancelar</button></div>
+          {showForm && <div className="order-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) { setShowForm(false); setEditingId(null); setForm(emptyForm()); } }}><form className="order-form order-modal-form" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" onSubmit={saveOrder}>
+            <div className="form-heading"><div><h2 id="order-modal-title">{editingId ? "Editar pedido" : "Novo pedido de locação"}</h2><p>{editingId ? "Altere os dados e salve as mudanças." : "O contrato PDF será gerado após o registro."}</p></div><button className="text-button" type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm()); }}><X size={14} /> Cancelar</button></div>
             <div className="form-grid">
               <label>Nome do cliente<input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></label>
               <label>CPF<input required value={form.customer_cpf} onChange={(e) => setForm({ ...form, customer_cpf: e.target.value })} placeholder="000.000.000-00" /></label>
@@ -645,7 +645,7 @@ export default function App() {
             </div>
             {form.event_date && <p className="calculated-hint">Prova prevista: <strong>{formatDate(getFittingDate(form.event_date))}</strong>. Bloqueio da peça: <strong>{formatDate(getBlockedPeriod(form.event_date).start)} a {formatDate(getBlockedPeriod(form.event_date).end)}</strong>.</p>}
             <button className="primary-button" type="submit" disabled={loading}>{loading ? "Salvando..." : editingId ? "Salvar alterações" : "Salvar pedido e gerar contrato"}</button>
-          </form>}
+          </form></div>}
 
           <section className="section-block">
             <div className="section-heading"><div><h2>Pedidos de locação</h2><p>Consulte, edite e gere novamente o contrato preliminar.</p></div><span className="subtle-pill">{loading ? "Carregando…" : `${orders.length} registros`}</span></div>
