@@ -285,3 +285,30 @@ tbody tr:last-child td{border-bottom:0}
 .fitting-date-label input:focus{outline:none;border-color:#a88ae7;box-shadow:0 0 0 3px #5722c512}
 .fitting-modal .primary-button{width:100%}
 @media(max-width:600px){.fitting-modal{padding:21px 17px;border-radius:15px}.fitting-modal .form-heading{gap:8px}}
+
+
+/* Modal de criação e edição de locações */
+.order-modal-backdrop{
+  position:fixed;inset:0;z-index:990;display:grid;place-items:center;
+  padding:24px;background:rgba(25,20,35,.56);backdrop-filter:blur(5px);
+}
+.order-modal-form{
+  width:min(100%,1000px);max-height:calc(100dvh - 48px);overflow-y:auto;
+  margin:0;padding:28px 30px 26px;border-radius:18px;
+  box-shadow:0 28px 90px rgba(18,12,30,.28);
+}
+.order-modal-form .form-heading{
+  position:sticky;top:-28px;z-index:2;margin:-28px -30px 24px;padding:24px 30px 20px;
+  background:#fff;border-bottom:1px solid #f0edf4;
+}
+.order-modal-form .form-heading h2{font-size:25px}
+.order-modal-form .form-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
+.order-modal-form>.primary-button{position:sticky;bottom:-26px;width:calc(100% + 60px);margin:20px -30px -26px;padding:18px 30px;border-radius:0 0 18px 18px}
+@media(max-width:700px){
+  .order-modal-backdrop{padding:10px;align-items:center}
+  .order-modal-form{max-height:calc(100dvh - 20px);padding:20px 16px 22px;border-radius:14px}
+  .order-modal-form .form-heading{top:-20px;margin:-20px -16px 20px;padding:18px 16px 16px}
+  .order-modal-form .form-grid{grid-template-columns:minmax(0,1fr)}
+  .order-modal-form .form-grid .wide{grid-column:auto}
+  .order-modal-form>.primary-button{bottom:-22px;width:calc(100% + 32px);margin:18px -16px -22px;padding:16px;border-radius:0 0 14px 14px}
+}
