@@ -738,6 +738,7 @@ export default function App() {
           </section>
         </div>}
 
+        {activeTab === "orders" && <>
         <div className="stats-grid">
           <article className="stat-card"><span>Pedidos confirmados</span><strong>{confirmed.length}</strong><small><CheckCircle2 size={14} /> Locações ativas</small></article>
           <article className="stat-card"><span>Provas pendentes</span><strong>{pendingFittings.length}</strong><small><BellRing size={14} /> Exigem acompanhamento</small></article>
@@ -771,6 +772,7 @@ export default function App() {
             </div>
           </div>
         </section>
+        </>}
 
         {activeTab === "orders" && <>
           {showForm && <div className="order-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) { setShowForm(false); setEditingId(null); setForm(emptyForm()); } }}><form className="order-form order-modal-form" role="dialog" aria-modal="true" aria-labelledby="order-modal-title" onSubmit={saveOrder}>
