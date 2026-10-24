@@ -549,7 +549,7 @@ export default function App() {
               <label className="wide">Endereço<input value={form.customer_address} onChange={(e) => setForm({ ...form, customer_address: e.target.value })} /></label>
               <label className="wide">Descrição do vestido<input required value={form.dress_description} onChange={(e) => setForm({ ...form, dress_description: e.target.value })} placeholder="Ex.: vestido verde com strass, tamanho M" /></label>
               <label>Código/identificador da peça<input required value={form.dress_code} onChange={(e) => setForm({ ...form, dress_code: e.target.value })} placeholder="Ex.: VD-014" /></label>
-              <label>Atendente responsável<input required value={form.attendant} onChange={(e) => setForm({ ...form, attendant: e.target.value })} /></label>
+              <label>Atendente responsável<select required value={form.attendant} onChange={(e) => setForm({ ...form, attendant: e.target.value })}><option value="">Selecione o atendente</option><option value="Walter">Walter</option><option value="Jaqueline">Jaqueline</option></select></label>
               <label>Data de confirmação<input required type="date" value={form.rental_confirmed_at} onChange={(e) => setForm({ ...form, rental_confirmed_at: e.target.value })} /></label>
               <label>Data do evento<input required type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} /></label>
               <label>Valor total do aluguel (R$)<input required type="number" min="0" step="0.01" value={form.total_amount} onChange={(e) => setForm({ ...form, total_amount: e.target.value })} /></label>
