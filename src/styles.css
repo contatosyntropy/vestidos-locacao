@@ -337,3 +337,8 @@ tbody tr:last-child td{border-bottom:0}
 @media(max-width:1050px){.availability-year-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.availability-controls{grid-template-columns:1fr}.availability-year-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.availability-month{padding:8px}.availability-day{font-size:9px;border-radius:4px}.availability-legend{gap:10px}}
 @media(max-width:420px){.availability-year-grid{grid-template-columns:1fr 1fr}.availability-month h3{font-size:12px}}
+
+
+.icon-button.danger-action{color:#b42332;border-color:#f0cbd0}
+.icon-button.danger-action:hover:not(:disabled){background:#fff0f1;border-color:#d94848}
+.icon-button.danger-action:disabled{opacity:.55;cursor:not-allowed}
