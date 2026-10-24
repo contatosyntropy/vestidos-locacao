@@ -56,3 +56,79 @@ button.priority-card{width:100%;font:inherit;cursor:pointer}
 .status-pill.pagamento-quitado{background:#e5f6eb;color:#217a4b;border:1px solid #ccebd8}
 @media(max-width:1100px){.priority-grid{grid-template-columns:1fr}.priority-open{opacity:1;transform:none}}
 @media(max-width:600px){.priority-overview{padding:15px}.priority-card{padding:14px}.priority-total strong{font-size:15px}.upcoming-card-heading{flex-wrap:wrap}.agenda-button{margin-left:50px}.priority-list li{gap:7px}.priority-date{flex-basis:55px}.priority-tag{font-size:8px}}
+
+/* Ajustes responsivos para celulares */
+html{ -webkit-text-size-adjust:100%; }
+body{overflow-x:hidden}
+button,input,select,textarea{font:inherit}
+select,textarea{max-width:100%}
+.form-grid select,.form-grid textarea,.auth-form input{width:100%;min-width:0;border:1px solid #e7e2ed;border-radius:8px;padding:11px 12px;outline:none;font-size:12px;color:#30283d;background:#fff}
+.form-grid select:focus,.form-grid textarea:focus{border-color:#a88ae7;box-shadow:0 0 0 3px #5722c511}
+.table-wrap{max-width:100%;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.table-wrap table{white-space:normal}
+@media(max-width:600px){
+  .main-panel{padding:18px 12px}
+  .sidebar{padding:14px 12px}
+  .brand-mark{width:38px;height:38px;font-size:22px}
+  .sidebar nav{margin:16px -12px 0;padding:0 12px 5px;scrollbar-width:thin}
+  .nav-item{min-height:42px;padding:10px 12px;font-size:12px}
+  .main-panel>.topbar{gap:14px;margin-bottom:20px}
+  .topbar h1{font-size:26px;line-height:1.2;overflow-wrap:anywhere}
+  .topbar p,.section-heading p,.form-heading p{font-size:12px;line-height:1.5}
+  .topbar-actions{width:100%;gap:8px}
+  .topbar-actions .primary-button,.topbar-actions .secondary-button{flex:1;min-height:42px;padding:10px}
+  .signed-in-email{overflow-wrap:anywhere}
+  .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:18px}
+  .stat-card{padding:13px 11px;border-radius:11px}
+  .stat-card>span{font-size:11px;line-height:1.4;display:block}
+  .stat-card strong{font-size:19px;line-height:1.25;overflow-wrap:anywhere;margin:8px 0}
+  .stat-card small{font-size:10px;line-height:1.4;align-items:flex-start}
+  .priority-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+  .priority-card{gap:9px;padding:13px 11px}
+  .priority-icon{width:32px;height:32px;flex-basis:32px;border-radius:9px}
+  .priority-copy strong{font-size:12px}
+  .priority-copy small{font-size:10px}
+  .priority-total{max-width:42%;align-items:flex-end}
+  .priority-total strong{font-size:14px;white-space:normal;overflow-wrap:anywhere;text-align:right}
+  .priority-total small{font-size:9px;white-space:normal;text-align:right}
+  .priority-open{display:none}
+  .upcoming-card{padding:13px 11px 8px}
+  .upcoming-card-heading{gap:9px}
+  .agenda-button{margin-left:41px;min-height:38px}
+  .priority-list li{align-items:flex-start;flex-wrap:wrap;padding:10px 0}
+  .priority-detail{flex-basis:calc(100% - 68px)}
+  .priority-tag{margin-left:64px}
+  .section-block,.order-form{padding:13px;margin-bottom:16px;border-radius:12px}
+  .section-heading,.form-heading{gap:10px;align-items:flex-start}
+  .section-heading h2,.form-heading h2{font-size:18px;line-height:1.25}
+  .subtle-pill{font-size:10px;padding:6px 8px;white-space:normal;text-align:center}
+  .form-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  .form-grid label.wide{grid-column:auto}
+  .form-grid label{font-size:12px;min-width:0}
+  .form-grid input,.form-grid select,.form-grid textarea{font-size:16px;min-height:44px;padding:11px 10px}
+  .form-grid input[type="checkbox"]{width:20px;min-height:20px}
+  .form-grid label small{font-size:10px;line-height:1.5}
+  .calculated-hint{font-size:11px;overflow-wrap:anywhere}
+  .primary-button,.secondary-button,.text-button,.icon-button,.agenda-button{min-height:40px}
+  .text-button{white-space:nowrap}
+  .table-wrap{margin:0 -2px}
+  .table-wrap table{min-width:700px}
+  th{padding:0 9px 11px;font-size:9px}
+  td{padding:12px 9px;font-size:11px}
+  .table-sub{font-size:10px;overflow-wrap:anywhere}
+  .icon-button{padding:8px;font-size:10px}
+  .app-footer{line-height:1.5;padding:12px 4px 18px}
+  .auth-shell{padding:16px}
+  .auth-card{padding:24px 18px;border-radius:14px}
+  .auth-card h1{font-size:27px}
+  .auth-form input{font-size:16px;min-height:44px}
+}
+@media(max-width:380px){
+  .stats-grid{grid-template-columns:minmax(0,1fr)}
+  .topbar h1{font-size:24px}
+  .priority-total{max-width:38%}
+  .section-heading{flex-direction:column}
+  .subtle-pill{align-self:flex-start}
+  .auth-card{padding:20px 15px}
+}
+
