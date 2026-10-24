@@ -78,7 +78,7 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("orders");
-  const [message, setMessage] = useState("Entre com sua conta para acessar os dados da loja.");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
