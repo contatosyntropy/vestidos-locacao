@@ -98,7 +98,6 @@ export default function App() {
   const [reportQuickRange, setReportQuickRange] = useState("all");
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
-  const [reportStatus, setReportStatus] = useState("");
   const [reportPaymentStatus, setReportPaymentStatus] = useState("");
   const [reportAttendant, setReportAttendant] = useState("");
 
@@ -557,7 +556,6 @@ export default function App() {
       if ((start || end) && !date) return false;
       if (start && date < start) return false;
       if (end && date > end) return false;
-      if (reportStatus && order.status !== reportStatus) return false;
       if (reportAttendant && order.attendant !== reportAttendant) return false;
       const paid = payments.reduce((sum, payment) => payment.order_id === order.id ? sum + Number(payment.amount) : sum, 0);
       const balance = Math.max(0, Number(order.total_amount || 0) - paid);
@@ -569,7 +567,7 @@ export default function App() {
       const db = reportPeriodType === "created_at" ? b.created_at : reportPeriodType === "pickup_at" ? b.pickup_at || "" : b.return_date || "";
       return da.localeCompare(db);
     });
-  }, [orders, payments, reportPeriodType, reportQuickRange, reportStartDate, reportEndDate, reportStatus, reportPaymentStatus, reportAttendant]);
+  }, [orders, payments, reportPeriodType, reportQuickRange, reportStartDate, reportEndDate, reportPaymentStatus, reportAttendant]);
   const reportTotals = useMemo(() => reportOrders.reduce((acc, order) => {
     acc.contracts += Number(order.total_amount || 0);
     acc.paid += payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
@@ -578,10 +576,10 @@ export default function App() {
   }, { contracts: 0, paid: 0, balance: 0 }), [reportOrders, payments]);
 
   function exportReportCsv() {
-    const headers = ["Cliente", "CPF", "Telefone", "Peça", "Código", "Data do pedido", "Retirada", "Devolução", "Evento", "Atendente", "Status", "Valor contratado", "Valor pago", "Saldo"];
+    const headers = ["Cliente", "CPF", "Telefone", "Peça", "Código", "Data do pedido", "Retirada", "Devolução", "Evento", "Atendente", "Valor contratado", "Valor pago", "Saldo"];
     const rows = reportOrders.map((order) => {
       const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
-      return [order.customer_name, order.customer_cpf, order.customer_phone || "", order.dress_description, order.dress_code, order.created_at ? formatDate(order.created_at.slice(0, 10)) : "", order.pickup_at ? formatDateTime(order.pickup_at) : "", order.return_date ? formatDate(order.return_date) : "", formatDate(order.event_date), order.attendant, labelOrder(order.status), order.total_amount, paid, balanceFor(order, payments)];
+      return [order.customer_name, order.customer_cpf, order.customer_phone || "", order.dress_description, order.dress_code, order.created_at ? formatDate(order.created_at.slice(0, 10)) : "", order.pickup_at ? formatDateTime(order.pickup_at) : "", order.return_date ? formatDate(order.return_date) : "", formatDate(order.event_date), order.attendant, order.total_amount, paid, balanceFor(order, payments)];
     });
     const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const blob = new Blob(["\\ufeff", csv], { type: "text/csv;charset=utf-8;" });
@@ -600,8 +598,8 @@ export default function App() {
     pdf.text("Relatório de locações — Imperatriz Trajes de Festa", 12, 14);
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
     pdf.text(`Registros: ${reportOrders.length} | Valor contratado: ${currency(reportTotals.contracts)} | Pago: ${currency(reportTotals.paid)} | Saldo: ${currency(reportTotals.balance)}`, 12, 21);
-    const columns = ["Cliente / peça", "Pedido", "Retirada", "Devolução", "Evento", "Atendente", "Status", "Contratado", "Pago", "Saldo"];
-    const colWidths = [49, 22, 25, 22, 22, 25, 22, 24, 24, 24];
+    const columns = ["Cliente / peça", "Pedido", "Retirada", "Devolução", "Evento", "Atendente", "Contratado", "Pago", "Saldo"];
+    const colWidths = [55, 22, 25, 22, 22, 25, 27, 27, 27];
     let y = 31;
     const drawHeader = () => {
       pdf.setFont("helvetica", "bold"); pdf.setFontSize(7);
@@ -614,7 +612,7 @@ export default function App() {
     reportOrders.forEach((order) => {
       if (y > 190) { pdf.addPage(); y = 15; drawHeader(); }
       const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0);
-      const values = [`${order.customer_name} / ${order.dress_description}`, order.created_at ? formatDate(order.created_at.slice(0,10)) : "-", order.pickup_at ? formatDateTime(order.pickup_at) : "-", order.return_date ? formatDate(order.return_date) : "-", formatDate(order.event_date), order.attendant || "-", labelOrder(order.status), currency(order.total_amount), currency(paid), currency(balanceFor(order, payments))];
+      const values = [`${order.customer_name} / ${order.dress_description}`, order.created_at ? formatDate(order.created_at.slice(0,10)) : "-", order.pickup_at ? formatDateTime(order.pickup_at) : "-", order.return_date ? formatDate(order.return_date) : "-", formatDate(order.event_date), order.attendant || "-", currency(order.total_amount), currency(paid), currency(balanceFor(order, payments))];
       pdf.setFont("helvetica", "normal"); pdf.setFontSize(6.5);
       let x = 12;
       values.forEach((value, i) => { pdf.text(pdf.splitTextToSize(String(value), colWidths[i] - 2).slice(0, 2), x, y); x += colWidths[i]; });
@@ -910,12 +908,11 @@ export default function App() {
             <label>Período baseado em<select value={reportPeriodType} onChange={(e) => setReportPeriodType(e.target.value as typeof reportPeriodType)}><option value="created_at">Data do pedido (criação)</option><option value="pickup_at">Data de retirada</option><option value="return_date">Data de devolução</option></select></label>
             <label>Atalho de período<select value={reportQuickRange} onChange={(e) => { setReportQuickRange(e.target.value); if (e.target.value === "custom") { setReportStartDate(""); setReportEndDate(""); } }}><option value="all">Todo o período</option><option value="today">Hoje</option><option value="week">Esta semana</option><option value="month">Este mês</option><option value="30days">Últimos 30 dias</option><option value="custom">Personalizado</option></select></label>
             {reportQuickRange === "custom" && <><label>Data inicial<input type="date" value={reportStartDate} onChange={(e) => setReportStartDate(e.target.value)} /></label><label>Data final<input type="date" value={reportEndDate} onChange={(e) => setReportEndDate(e.target.value)} /></label></>}
-            <label>Status do pedido<select value={reportStatus} onChange={(e) => setReportStatus(e.target.value)}><option value="">Todos os status</option><option value="rascunho">Rascunho</option><option value="confirmado">Confirmado</option><option value="cancelado">Cancelado</option></select></label>
             <label>Status do pagamento<select value={reportPaymentStatus} onChange={(e) => setReportPaymentStatus(e.target.value)}><option value="">Todos</option><option value="paid">Integralmente pago</option><option value="pending">Pendente de pagamento</option></select></label>
             <label>Atendente<select value={reportAttendant} onChange={(e) => setReportAttendant(e.target.value)}><option value="">Todos os atendentes</option>{reportAttendants.map((attendant) => <option key={attendant} value={attendant}>{attendant}</option>)}</select></label>
           </div>
           <div className="report-summary-cards"><article><span>Pedidos encontrados</span><strong>{reportOrders.length}</strong></article><article><span>Valor contratado</span><strong>{currency(reportTotals.contracts)}</strong></article><article><span>Total recebido</span><strong>{currency(reportTotals.paid)}</strong></article><article><span>Saldo pendente</span><strong>{currency(reportTotals.balance)}</strong></article></div>
-          <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Data do pedido</th><th>Retirada</th><th>Devolução</th><th>Evento</th><th>Atendente</th><th>Status</th><th>Contratado</th><th>Pago</th><th>Saldo</th></tr></thead><tbody>{reportOrders.map((order) => { const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0); return <tr key={order.id}><td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description} · {order.dress_code}</span></td><td>{order.created_at ? formatDate(order.created_at.slice(0,10)) : "—"}</td><td>{order.pickup_at ? formatDateTime(order.pickup_at) : "—"}</td><td>{order.return_date ? formatDate(order.return_date) : "—"}</td><td>{formatDate(order.event_date)}</td><td>{order.attendant}</td><td>{labelOrder(order.status)}</td><td>{currency(order.total_amount)}</td><td>{currency(paid)}</td><td>{currency(balanceFor(order, payments))}</td></tr>; })}</tbody></table>{reportOrders.length===0 && <div className="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>}</div>
+          <div className="table-wrap"><table><thead><tr><th>Cliente / peça</th><th>Data do pedido</th><th>Retirada</th><th>Devolução</th><th>Evento</th><th>Atendente</th><th>Contratado</th><th>Pago</th><th>Saldo</th></tr></thead><tbody>{reportOrders.map((order) => { const paid = payments.filter((payment) => payment.order_id === order.id).reduce((sum, payment) => sum + Number(payment.amount), 0); return <tr key={order.id}><td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description} · {order.dress_code}</span></td><td>{order.created_at ? formatDate(order.created_at.slice(0,10)) : "—"}</td><td>{order.pickup_at ? formatDateTime(order.pickup_at) : "—"}</td><td>{order.return_date ? formatDate(order.return_date) : "—"}</td><td>{formatDate(order.event_date)}</td><td>{order.attendant}</td><td>{currency(order.total_amount)}</td><td>{currency(paid)}</td><td>{currency(balanceFor(order, payments))}</td></tr>; })}</tbody></table>{reportOrders.length===0 && <div className="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>}</div>
         </section>}
 
         {activeTab === "fittings" && <section className="section-block">
@@ -970,12 +967,6 @@ function formatDate(value: string) {
   if (!value) return "—";
   const [year, month, day] = value.slice(0, 10).split("-");
   return `${day}/${month}/${year}`;
-}
-
-function labelOrder(status: RentalOrder["status"]) {
-  if (status === "confirmado") return "Confirmado";
-  if (status === "cancelado") return "Cancelado";
-  return "Rascunho";
 }
 
 function labelFitting(status: RentalOrder["fitting_status"]) {
