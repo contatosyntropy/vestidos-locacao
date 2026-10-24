@@ -972,6 +972,12 @@ function formatDate(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+function labelOrder(status: RentalOrder["status"]) {
+  if (status === "confirmado") return "Confirmado";
+  if (status === "cancelado") return "Cancelado";
+  return "Rascunho";
+}
+
 function labelFitting(status: RentalOrder["fitting_status"]) {
   if (status === "pendente") return "Pendente";
   if (status === "agendada") return "Agendada";
