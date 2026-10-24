@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BellRing, CalendarDays, CheckCircle2, ClipboardList, Download,
-  LogOut, Plus, ShieldAlert, Wallet, Pencil, X,
+  LogOut, Plus, ShieldAlert, Wallet, Pencil, X, AlertTriangle, Clock3,
 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { downloadRentalContract } from "./lib/contracts";
@@ -414,6 +414,35 @@ export default function App() {
   /*const totalContracted = confirmed.reduce((sum, order) => sum + Number(order.total_amount), 0);*/
   const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const totalBalance = confirmed.reduce((sum, order) => sum + balanceFor(order, payments), 0);
+  const paymentPendingOrders = useMemo(
+    () => confirmed.filter((order) => balanceFor(order, payments) > 0.009),
+    [confirmed, payments],
+  );
+  const upcomingPriorities = useMemo(() => {
+    const start = today();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 7);
+    const end = toDateString(endDate);
+    const items: { order: RentalOrder; date: string; kind: string; urgency: number }[] = [];
+
+    confirmed.forEach((order) => {
+      const fittingDate = order.fitting_date || getFittingDate(order.event_date);
+      if (order.fitting_status !== "realizada" && fittingDate >= start && fittingDate <= end) {
+        items.push({ order, date: fittingDate, kind: "Prova", urgency: dateDistance(fittingDate, start) });
+      }
+      if (order.pickup_at) {
+        const pickupDate = order.pickup_at.slice(0, 10);
+        if (pickupDate >= start && pickupDate <= end) {
+          items.push({ order, date: pickupDate, kind: "Retirada", urgency: dateDistance(pickupDate, start) });
+        }
+      }
+      if (order.return_date && order.return_date >= start && order.return_date <= end) {
+        items.push({ order, date: order.return_date, kind: "Devolução", urgency: dateDistance(order.return_date, start) });
+      }
+    });
+
+    return items.sort((a, b) => a.urgency - b.urgency || a.date.localeCompare(b.date)).slice(0, 5);
+  }, [confirmed]);
 
   const availabilityMatches = useMemo(() => {
     const code = availabilityCode.trim().toLocaleLowerCase("pt-BR");
@@ -481,6 +510,31 @@ export default function App() {
           <article className="stat-card"><span>Saldo a receber</span><strong>{currency(totalBalance)}</strong><small>Total contratado menos pagamentos registrados</small></article>
         </div>
 
+        <section className="section-block priority-overview">
+          <div className="section-heading">
+            <div><h2><AlertTriangle size={17} /> Prioridades</h2><p>Pagamentos pendentes e compromissos dos próximos 7 dias.</p></div>
+          </div>
+          <div className="priority-grid">
+            <button type="button" className="priority-card payment-priority" onClick={() => setActiveTab("payments")}>
+              <span className="priority-icon"><Wallet size={17} /></span>
+              <span className="priority-copy"><strong>Pagamento pendente</strong><small>{paymentPendingOrders.length} {paymentPendingOrders.length === 1 ? "locação com saldo" : "locações com saldo"}</small></span>
+              <strong className="priority-value">{currency(totalBalance)}</strong>
+            </button>
+            <div className="priority-card upcoming-card">
+              <span className="priority-icon"><Clock3 size={17} /></span>
+              <span className="priority-copy"><strong>Próximas atividades</strong><small>Provas, retiradas e devoluções</small></span>
+              <button type="button" className="inline-action" onClick={() => setActiveTab("fittings")}>Ver agenda</button>
+              {upcomingPriorities.length > 0 ? <ul className="priority-list">
+                {upcomingPriorities.map((item, index) => <li key={item.order.id + item.kind + item.date + index}>
+                  <span className="priority-date">{formatDate(item.date)}</span>
+                  <span className="priority-detail"><strong>{item.kind}</strong><small>{item.order.customer_name} · {item.order.dress_code || "Sem código"}</small></span>
+                  <span className="priority-tag">{item.urgency === 0 ? "Hoje" : item.urgency === 1 ? "Amanhã" : `Em ${item.urgency} dias`}</span>
+                </li>)}
+              </ul> : <p className="empty-state compact-empty">Nenhuma atividade prevista para os próximos 7 dias.</p>}
+            </div>
+          </div>
+        </section>
+
         {activeTab === "orders" && <>
           {showForm && <form className="order-form" onSubmit={saveOrder}>
             <div className="form-heading"><div><h2>{editingId ? "Editar pedido" : "Novo pedido"}</h2><p>{editingId ? "Altere os dados e salve as mudanças." : "O contrato PDF será gerado após o registro."}</p></div><button className="text-button" type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm()); }}><X size={14} /> Cancelar</button></div>
@@ -518,7 +572,7 @@ export default function App() {
               <tbody>{orders.map((order) => <tr key={order.id}>
                 <td><strong>{order.customer_name}</strong><span className="table-sub">{order.dress_description}</span><span className="code-pill">{order.dress_code || "Sem código"}</span></td>
                 <td>{formatDate(order.event_date)}<span className="table-sub">Confirmação: {formatDate(order.rental_confirmed_at)}</span></td>
-                <td><strong>{currency(Number(order.total_amount))}</strong><span className="table-sub">Saldo: {currency(balanceFor(order, payments))}</span></td>
+                <td><strong>{currency(Number(order.total_amount))}</strong><span className="table-sub">Saldo: {currency(balanceFor(order, payments))}</span>{balanceFor(order, payments) > 0.009 && <span className="status-pill pagamento-pendente">Pagamento pendente</span>}{balanceFor(order, payments) <= 0.009 && <span className="status-pill pagamento-quitado">Quitado</span>}</td>
                 <td><span className={`status-pill ${order.fitting_status}`}>{labelFitting(order.fitting_status)}</span>{order.fitting_status === "pendente" && <button className="inline-action" onClick={() => void updateFitting(order, "agendada")}>Agendar prova</button>}{order.fitting_status === "agendada" && <button className="inline-action" onClick={() => void updateFitting(order, "realizada")}>Marcar realizada</button>}</td>
                 <td><button className="icon-button" onClick={() => startEditOrder(order)} title="Editar pedido"><Pencil size={14} /> Editar</button>{" "}<button className="icon-button" title="Gerar contrato preliminar" onClick={() => downloadRentalContract(order)}><Download size={14} /> PDF</button></td>
               </tr>)}</tbody></table>
@@ -618,6 +672,16 @@ function balanceFor(order: RentalOrder, payments: Payment[]) {
   return getBalance(Number(order.total_amount), payments
     .filter((payment) => payment.order_id === order.id)
     .map((payment) => Number(payment.amount)));
+}
+
+function toDateString(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function dateDistance(date: string, from: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const [fromYear, fromMonth, fromDay] = from.split("-").map(Number);
+  return Math.round((new Date(year, month - 1, day).getTime() - new Date(fromYear, fromMonth - 1, fromDay).getTime()) / 86400000);
 }
 
 function currency(value: number) {
