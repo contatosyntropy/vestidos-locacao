@@ -372,28 +372,56 @@ export default function App() {
 
   async function saveFittingSchedule(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!supabase || !userEmail || !fittingOrderId || !fittingDateInput) return;
 
-    setFittingSaving(true);
-    const { error } = await supabase
-      .from("rental_orders")
-      .update({ fitting_status: "agendada", fitting_date: fittingDateInput })
-      .eq("id", fittingOrderId);
-    setFittingSaving(false);
-
-    if (error) {
-      setMessage(`Não foi possível salvar a data da prova: ${error.message}`);
+    if (!supabase) {
+      setMessage("Não foi possível salvar: conexão com o Supabase não configurada.");
+      return;
+    }
+    if (!userEmail) {
+      setMessage("Sua sessão expirou. Entre novamente para salvar o agendamento.");
+      return;
+    }
+    if (!fittingOrderId) {
+      setMessage("Selecione uma locação antes de salvar o agendamento.");
+      return;
+    }
+    if (!fittingDateInput) {
+      setMessage("Selecione a data da prova antes de confirmar.");
       return;
     }
 
-    setOrders((current) => current.map((item) =>
-      item.id === fittingOrderId
-        ? { ...item, fitting_status: "agendada", fitting_date: fittingDateInput }
-        : item,
-    ));
-    setFittingOrderId(null);
-    setFittingDateInput("");
-    setMessage("Data da prova salva e agendamento atualizado.");
+    setFittingSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("rental_orders")
+        .update({ fitting_status: "agendada", fitting_date: fittingDateInput })
+        .eq("id", fittingOrderId)
+        .select("id")
+        .maybeSingle();
+
+      if (error) {
+        setMessage(`Não foi possível salvar a data da prova: ${error.message}`);
+        return;
+      }
+      if (!data) {
+        setMessage("Nenhuma locação foi atualizada. Verifique as permissões de edição no Supabase e tente novamente.");
+        return;
+      }
+
+      setOrders((current) => current.map((item) =>
+        item.id === fittingOrderId
+          ? { ...item, fitting_status: "agendada", fitting_date: fittingDateInput }
+          : item,
+      ));
+      setFittingOrderId(null);
+      setFittingDateInput("");
+      setMessage("Data da prova salva e agendamento atualizado.");
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      setMessage(`Erro inesperado ao salvar a prova: ${detail}`);
+    } finally {
+      setFittingSaving(false);
+    }
   }
 
   async function savePayment(event: React.FormEvent<HTMLFormElement>) {
