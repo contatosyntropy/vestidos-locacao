@@ -82,6 +82,7 @@ export default function App() {
 
   const [availabilityCode, setAvailabilityCode] = useState("");
   const [availabilityDate, setAvailabilityDate] = useState("");
+  const [availabilityYear, setAvailabilityYear] = useState(new Date().getFullYear());
   const [paymentOrderId, setPaymentOrderId] = useState("");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(today());
@@ -517,6 +518,12 @@ export default function App() {
     });
   }, [confirmed, availabilityCode, availabilityDate]);
 
+
+  const availabilityCalendarOrders = useMemo(() => {
+    const code = availabilityCode.trim().toLocaleLowerCase("pt-BR");
+    return confirmed.filter((order) => !code || order.dress_code.toLocaleLowerCase("pt-BR").includes(code));
+  }, [confirmed, availabilityCode]);
+
   const paymentOrder = orders.find((order) => order.id === paymentOrderId);
 
   if (!authReady) {
@@ -669,27 +676,51 @@ export default function App() {
           </section>
         </>}
 
-        {activeTab === "availability" && <section className="section-block">
-          <div className="section-heading"><div><h2>Consultar disponibilidade</h2><p>Pesquise pelas peças já locadas e pelos períodos bloqueados.</p></div></div>
-          <div className="form-grid">
+        {activeTab === "availability" && <section className="section-block availability-section">
+          <div className="section-heading"><div><h2>Consultar disponibilidade</h2><p>Pesquise pelo código da peça e visualize os períodos bloqueados no calendário anual.</p></div></div>
+          <div className="availability-controls">
             <label>Código do traje (opcional)<input value={availabilityCode} onChange={(e) => setAvailabilityCode(e.target.value)} placeholder="Ex.: VD-014" /></label>
-            <label>Data pretendida<input type="date" value={availabilityDate} onChange={(e) => setAvailabilityDate(e.target.value)} /></label>
+            <label>Ano da consulta<select value={availabilityYear} onChange={(e) => setAvailabilityYear(Number(e.target.value))}>{Array.from({ length: 11 }, (_, index) => new Date().getFullYear() - 5 + index).map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+            <label>Data específica (opcional)<input type="date" value={availabilityDate} onChange={(e) => { setAvailabilityDate(e.target.value); if (e.target.value) setAvailabilityYear(Number(e.target.value.slice(0, 4))); }} /></label>
           </div>
-          {availabilityDate && <p className="calculated-hint">Peças com locação confirmada dentro do período de bloqueio aparecerão abaixo. O bloqueio vai de 10 dias antes até 10 dias depois do evento, inclusive.</p>}
+          <div className="availability-legend"><span><i className="availability-dot blocked" /> Indisponível</span><span><i className="availability-dot available" /> Sem bloqueio registrado</span><span>Selecione uma data para consultar os conflitos.</span></div>
+          {availabilityDate && <p className="calculated-hint">Data selecionada: <strong>{formatDate(availabilityDate)}</strong>. A consulta considera os períodos bloqueados das locações confirmadas.</p>}
+          <div className="availability-year-grid">
+            {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((monthName, monthIndex) => {
+              const firstWeekday = new Date(availabilityYear, monthIndex, 1).getDay();
+              const daysInMonth = new Date(availabilityYear, monthIndex + 1, 0).getDate();
+              return <article className="availability-month" key={monthName}>
+                <h3>{monthName}</h3>
+                <div className="availability-weekdays">{["D","S","T","Q","Q","S","S"].map((day, index) => <span key={day + index}>{day}</span>)}</div>
+                <div className="availability-days">
+                  {Array.from({ length: firstWeekday }, (_, index) => <span className="availability-day empty" key={"empty-" + index} />)}
+                  {Array.from({ length: daysInMonth }, (_, index) => {
+                    const day = index + 1;
+                    const date = `${availabilityYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                    const conflicts = availabilityCalendarOrders.filter((order) => {
+                      const blocked = getBlockedPeriod(order.event_date);
+                      return date >= blocked.start && date <= blocked.end;
+                    });
+                    const isSelected = availabilityDate === date;
+                    return <button type="button" key={date} title={conflicts.length ? conflicts.map((order) => `${order.dress_code} — ${order.customer_name}`).join("\n") : "Nenhum bloqueio registrado"} className={`availability-day ${conflicts.length ? "blocked" : ""} ${isSelected ? "selected" : ""}`} onClick={() => setAvailabilityDate(isSelected ? "" : date)}>{day}</button>;
+                  })}
+                </div>
+              </article>;
+            })}
+          </div>
+          <div className="section-heading availability-results-heading"><div><h2>{availabilityDate ? `Conflitos em ${formatDate(availabilityDate)}` : "Locações que bloqueiam o período"}</h2><p>{availabilityDate ? "Peças bloqueadas na data selecionada." : "Locações confirmadas relacionadas ao filtro de código."}</p></div></div>
           <div className="table-wrap"><table><thead><tr><th>Peça / código</th><th>Cliente</th><th>Evento</th><th>Período bloqueado</th><th>Resultado</th></tr></thead>
             <tbody>{availabilityMatches.map((order) => {
               const blocked = getBlockedPeriod(order.event_date);
               return <tr key={order.id}>
                 <td><strong>{order.dress_description}</strong><span className="code-pill">{order.dress_code}</span></td>
-                <td>{order.customer_name}</td>
-                <td>{formatDate(order.event_date)}</td>
-                <td>{formatDate(blocked.start)} a {formatDate(blocked.end)}</td>
+                <td>{order.customer_name}</td><td>{formatDate(order.event_date)}</td><td>{formatDate(blocked.start)} a {formatDate(blocked.end)}</td>
                 <td><span className="status-pill pendente">{availabilityDate ? "Conflito de período" : "Locação registrada"}</span></td>
               </tr>;
             })}</tbody></table>
             {availabilityMatches.length === 0 && <div className="empty-state">{availabilityDate ? "Nenhuma locação confirmada bloqueia esta data com os filtros informados." : "Nenhuma locação encontrada com esses filtros."}</div>}
           </div>
-          <p className="app-footer">A consulta considera os pedidos confirmados que estão cadastrados. A confirmação definitiva continua protegida pela regra de conflito no banco de dados.</p>
+          <p className="app-footer">As datas vermelhas representam períodos bloqueados por locações confirmadas cadastradas no sistema. A consulta considera o intervalo definido nas regras de locação.</p>
         </section>}
 
         {activeTab === "payments" && <section className="section-block">
